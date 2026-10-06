@@ -1,0 +1,90 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: Sans-serif;
+ }
+
+ .container {
+    border: 2px solid black;
+    background-color: #ddd8ca;
+    border-radius: 4px;
+    padding: 16px;
+ }
+
+.user-input #judul {
+    border-radius: 4px;
+    border: none;
+    width: 100%;
+    height: 30px;
+
+}
+
+.dropdown {
+    display: flex;
+    padding-top: 8px;
+    gap: 8px;
+    height: 30px;
+}
+
+.dropdown #kategori {
+    border-radius: 4px;
+    cursor: pointer;
+    width: 150px;
+}
+
+.dropdown button {
+    border: 1px solid black;
+    border-radius: 4px;
+}
+
+.dropdown #date {
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid black;
+}
+
+.dropdown button:hover {
+    background-color: black;
+    color: white;
+    cursor: pointer;
+}
+
+.pesan-error {
+    font-size: 13px;
+    color: red;
+}
+
+.option button {
+    border-radius: 4px;
+    border: none;
+    height: 25px;
+}
+
+.option button:hover {
+    background-color: black;
+    color: white;
+    cursor: pointer;
+}
+
+ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+
+.list li {
+    display: flex;
+    background-color: white;
+    border: 1px solid black;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 13px;
+}

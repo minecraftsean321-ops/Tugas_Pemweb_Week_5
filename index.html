@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="mystyle.css">
+</head>
+<body>
+    <div class="container">
+    <div class="header">
+        <h1>Task Tracker Kuliah</h1>
+
+    </div>
+
+    <div class="user-input">
+        <form>
+            <input id="judul" type="text" placeholder="Judul tugas (min. 3 karakter)" required>
+        </form>
+
+        <div class="dropdown">
+            <select id="matkul" required>
+                <option value="Pemrograman Web">Pemrograman Web</option>
+                <option value="Sistem Basis Data">Sistem Basis Data</option>
+                <option value="Struktur Data">Struktur Data</option>
+            </select>
+
+            <input id="deadline" type="date" required>
+
+            <button type="button">Tambah</button>
+        </div>
+    </div>
+
+    <div class="pesan-error">
+        <p>Deadline wajib diisi!</p>
+    </div>
+
+    <div class="option">
+        <button type="button">Semua</button>
+        <button type="buttom">Aktif</button>
+        <button type="button">Selesai</button>
+    </div>
+
+    <div class="container-tugas">
+        <ul class="list">
+            <li>Main gitar</li>
+            <li>Live Coding</li>
+        </ul>
+
+    </div>
+
+    </div>
+
+
+
+
+    <script src="tracker.js" defer></script>
+</body>
+</html>

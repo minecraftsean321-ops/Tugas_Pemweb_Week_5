@@ -56,6 +56,10 @@ body {
     color: red;
 }
 
+.pesan-error p {
+    margin: 8px 0;
+}
+
 .option {
     padding-bottom: 8px;
     display: flex;

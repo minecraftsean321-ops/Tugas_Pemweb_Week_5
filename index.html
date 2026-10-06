@@ -38,13 +38,17 @@
     </div>
 
     <div class="option">
+        <div id="filter">
         <button type="button" id="btnSemua" class="on" onclick="setFilter('semua')">Semua</button>
         <button type="buttom" id="btnAktif" onclick="setFilter('aktif')">Aktif</button>
         <button type="button" id="btnSelesai" onclick="setFilter('selesai')">Selesai</button>
-    </div>
+        </div>
 
-    <!-- Tempat untuk counter "N tugas aktif" -->
-    <p id="counterTugas" style="font-weight: bold; margin-top: 15px; margin-bottom: 10px;"></p> 
+        <!-- Tempat untuk counter "N tugas aktif" -->
+        <div class="jumlah-tugas">
+        <p id="counterTugas" style="font-weight: bold; margin-top: 15px; margin-bottom: 10px;"></p>
+        </div> 
+    </div>
 
     <div class="container-tugas">
         <ul class="list" id="listTugas">

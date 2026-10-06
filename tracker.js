@@ -1,5 +1,5 @@
 // Buat array of object untuk daftar tugasnya
-let daftarTugas = [];
+let daftarTugas = JSON.parse(localStorage.getItem('dataTugas')) || [];
 // Variabel untuk melacak filter yang sedang dipilih
 let filterAktif = 'semua';
 
@@ -54,8 +54,11 @@ function render() {
         return true; // Kalau 'semua', kembalikan semua data
     });
 
+    // Urutkan data berdasarkan deadline terdekat
+    dataTerfilter.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+
     if (dataTerfilter.length === 0) {
-        containerTugas.innerHTML = '<li>Belum ada tugas yang ditambahkan.</li>';
+        listTugas.innerHTML = '<li>Belum ada tugas yang ditambahkan.</li>';
         return;
     }
 
@@ -70,11 +73,14 @@ function render() {
         const strongJudul = document.createElement('strong');
         strongJudul.textContent = tugas.judul; 
         
-        const spanDetail = document.createElement('span');
-        spanDetail.textContent = ` - ${tugas.matkul} (Deadline: ${tugas.deadline})`;
-        
+        // Ganti 'span' menjadi 'div' agar otomatis pindah ke bawah judul
+        const divDetail = document.createElement('div');
+        // Tanda strip (-) dihilangkan agar lebih rapi saat berada di baris baru
+        divDetail.textContent = `${tugas.matkul} | Deadline: ${tugas.deadline}`;
+        divDetail.style.fontSize = '0.9em'; // Opsional: bikin teks detail sedikit lebih kecil
+
         divInfo.appendChild(strongJudul);
-        divInfo.appendChild(spanDetail);
+        divInfo.appendChild(divDetail);
 
         // Bikin bungkus kanan (tombol)
         const divAksi = document.createElement('div');
@@ -128,6 +134,8 @@ formTugas.addEventListener('submit', function(e) {
     // Masukkan ke dalam state array of objects
     daftarTugas.push(tugasBaru);
 
+    simpanData();
+
     // Reset form input agar kosong kembali
     formTugas.reset();
 
@@ -143,12 +151,15 @@ function toggleSelesai(id) {
         }
         return tugas;
     });
+
+    simpanData();
     render();
 }
 
 // Fungsi opsional untuk menghapus tugas dari state
 function hapusTugas(id) {
     daftarTugas = daftarTugas.filter(tugas => tugas.id !== id);
+    simpanData();
     render();
 }
 

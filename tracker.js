@@ -1,12 +1,12 @@
 // Buat array of object untuk daftar tugasnya
 let daftarTugas = [];
 
-const formTugas = document.getElementById('container');
+const formTugas = document.getElementById('formTugas');
 const judulTugas = document.getElementById('judul');
 const inputMatkul = document.getElementById('matkul');
 const inputDeadline = document.getElementById('deadline');
-const errorHandler = document.getElementsByClassName('pesan-error');
-const containerTugas = document.getElementsByClassName('container-tugas');
+const errorHandler = document.getElementById('pesanError');
+const containerTugas = document.getElementById('listTugas');
 
 // 02. Tampilan dibangun oleh satu fungsi render()
 function render() {
@@ -14,22 +14,30 @@ function render() {
     containerTugas.innerHTML = '';
 
     if (daftarTugas.length === 0) {
-        containerTugas.innerHTML = '<p>Belum ada tugas yang ditambahkan.</p>';
+        containerTugas.innerHTML = '<li>Belum ada tugas yang ditambahkan.</li>';
         return;
     }
 
     // Loop state array of objects dan buat elemen HTML-nya
     daftarTugas.forEach(tugas => {
-        const itemTugas = document.createElement('div');
-        // Contoh class dinamis jika ingin memberi style coret saat selesai
-        itemTugas.className = `task-item ${tugas.selesai ? 'selesai' : ''}`;
+        // UBAH 'div' menjadi 'li' agar terbaca oleh CSS .list li
+        const itemTugas = document.createElement('li'); 
+        
+        // Berikan class dinamis jika tugas sudah selesai
+        itemTugas.className = tugas.selesai ? 'selesai' : '';
+
+        // Tambahkan efek coret kalau selesai (bisa dihapus jika sudah diatur di CSS .selesai)
+        if (tugas.selesai) {
+            itemTugas.style.textDecoration = 'line-through';
+            itemTugas.style.color = 'gray';
+        }
 
         itemTugas.innerHTML = `
             <div>
                 <strong>${tugas.judul}</strong><br>
-                <span>Matkul: ${tugas.matkul} | Deadline: ${tugas.deadline}</span>
+                <span>${tugas.matkul} | Deadline: ${tugas.deadline}</span>
             </div>
-            <div>
+            <div style="margin-top: 5px;">
                 <button type="button" onclick="toggleSelesai(${tugas.id})">
                     ${tugas.selesai ? 'Batal' : 'Selesai'}
                 </button>
@@ -37,7 +45,8 @@ function render() {
             </div>
         `;
 
-        containerTugas.appendChild(itemTugas);
+        // Pastikan ini di-append ke variabel penampung <ul> kamu (listTugas)
+        listTugas.appendChild(itemTugas); 
     });
 }
 
@@ -45,7 +54,7 @@ function render() {
 formTugas.addEventListener('submit', function(e) {
     e.preventDefault(); // Mencegah form melakukan reload halaman
     
-    const judulVal = inputJudul.value.trim();
+    const judulVal = judulTugas.value.trim();
     const matkulVal = inputMatkul.value;
     const deadlineVal = inputDeadline.value;
 
@@ -61,12 +70,12 @@ formTugas.addEventListener('submit', function(e) {
 
     // Jika ada error, tampilkan di elemen error halaman dan hentikan proses
     if (pesanError !== '') {
-        errorContainer.textContent = pesanError;
+        errorHandler.textContent = pesanError;
         return;
     }
 
     // Jika lolos validasi, bersihkan pesan error
-    errorContainer.textContent = '';
+    errorHandler.textContent = '';
 
     // Buat objek tugas baru sesuai struktur state
     const tugasBaru = {

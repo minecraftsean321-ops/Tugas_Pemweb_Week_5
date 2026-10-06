@@ -14,25 +14,27 @@
     </div>
 
     <div class="user-input">
-        <form>
+        <form id="formTugas">
             <input id="judul" type="text" placeholder="Judul tugas (min. 3 karakter)" required>
-        </form>
+    
 
         <div class="dropdown">
-            <select id="matkul" required>
+            <select id="matkul" novalidate>
                 <option value="Pemrograman Web">Pemrograman Web</option>
                 <option value="Sistem Basis Data">Sistem Basis Data</option>
                 <option value="Struktur Data">Struktur Data</option>
             </select>
 
-            <input id="deadline" type="date" required>
+            <input id="deadline" type="date" novalidate>
 
-            <button type="button">Tambah</button>
+            <button type="submit">Tambah</button>
         </div>
+
+        </form>
     </div>
 
     <div class="pesan-error">
-        <p>Deadline wajib diisi!</p>
+        <p id="pesanError"> </p>
     </div>
 
     <div class="option">
@@ -42,9 +44,8 @@
     </div>
 
     <div class="container-tugas">
-        <ul class="list">
-            <li>Main gitar</li>
-            <li>Live Coding</li>
+        <ul class="list" id="listTugas">
+
         </ul>
 
     </div>

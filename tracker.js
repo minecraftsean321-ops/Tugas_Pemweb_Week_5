@@ -251,28 +251,22 @@ async function hapusTugas(id) {
     }
 }
 
-// 04. Helper api() untuk mengecek res.ok dan melempar Error
+// Helper api() yang tahan banting (Poin 06)
 async function api(url, options = {}) {
-    const res = await fetch(url, options);
-    
-    // Jika respons gagal (misal 400, 404, 500)
-    if (!res.ok) {
-        let errorMessage = `Error Server: ${res.status}`;
-        try {
-            // Mencoba mengambil pesan error spesifik dari JSON server[cite: 12]
-            const errorData = await res.json();
-            errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-            // Abaikan jika server tidak mengirim format JSON
+    try {
+        const res = await fetch(url, options);
+        if (!res.ok) {
+            let errorMessage = `Error Server: ${res.status}`;
+            try {
+                const errorData = await res.json();
+                errorMessage = errorData.message || errorMessage;
+            } catch (e) {}
+            throw new Error(errorMessage);
         }
-        throw new Error(errorMessage); // Melempar pesan error[cite: 12]
+        if (res.status === 204) return null;
+        return res.json();
+    } catch (error) {
+        // Menangkap error jaringan agar tidak bocor jadi error merah di Console
+        throw new Error(error.message === 'Failed to fetch' ? 'Koneksi terputus (Offline)' : error.message);
     }
-
-    // Jika method DELETE biasanya mengembalikan status 204 (No Content), jangan parse JSON[cite: 12]
-    if (res.status === 204) {
-        return null;
-    }
-
-    // Mengembalikan data JSON untuk request yang berhasil
-    return res.json();
 }

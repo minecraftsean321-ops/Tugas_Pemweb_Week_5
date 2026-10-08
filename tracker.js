@@ -1,5 +1,5 @@
 // Buat array of object untuk daftar tugasnya
-let daftarTugas = JSON.parse(localStorage.getItem('dataTugas')) || [];
+let daftarTugas = [];
 // Variabel untuk melacak filter yang sedang dipilih
 let filterAktif = 'semua';
 
@@ -16,10 +16,39 @@ const btnAktif = document.getElementById('btnAktif');
 const btnSelesai = document.getElementById('btnSelesai');
 const counterTugas = document.getElementById('counterTugas');
 
-//fungsi untuk menyimpan ke localStorage
-function simpanData() {
-    localStorage.setItem('dataTugas', JSON.stringify(daftarTugas));
+// Fungsi 01: Muat dari server (GET)
+async function fetchTugas() {
+    // Tampilkan state loading (skeleton teks)
+    listTugas.innerHTML = '<li style="text-align:center; padding:15px;">Memuat data...</li>';
+
+    try {
+        // Melakukan request GET ke /api/tugas
+        const response = await fetch('/api/tugas');
+        
+        if (!response.ok) {
+            throw new Error(`Gagal memuat data (Status: ${response.status})`);
+        }
+
+        // Ambil data JSON dari server dan masukkan ke state
+        const data = await response.json();
+        daftarTugas = data;
+        
+        // Panggil fungsi render untuk menampilkan data (termasuk penanganan jika array kosong)
+        render();
+
+    } catch (error) {
+        // Tampilkan state error dan tombol coba lagi
+        listTugas.innerHTML = `
+            <li style="text-align:center; color:red; padding:15px; border:1px solid red; list-style:none;">
+                Terjadi kesalahan: ${error.message}<br>
+                <button type="button" onclick="fetchTugas()" style="margin-top:10px; padding:5px 10px;">Coba Lagi</button>
+            </li>
+        `;
+    }
 }
+
+// Panggil fetchTugas() pertama kali saat script dimuat, bukan render()
+fetchTugas();
 
 // Fungsi untuk mengatur filter dan class 'on' pada tombol[cite: 5]
 function setFilter(jenisFilter) {
@@ -95,52 +124,71 @@ function render() {
     });
 }
 
-// 01. Listener di submit + preventDefault() + validasi
-formTugas.addEventListener('submit', function(e) {
-    e.preventDefault(); // Mencegah form melakukan reload halaman
+// Tangkap tombol submit untuk fitur disable
+const btnSubmit = formTugas.querySelector('button[type="submit"]');
+
+// Fungsi 02: Tambah (POST)
+formTugas.addEventListener('submit', async function(e) {
+    e.preventDefault(); 
     
     const judulVal = judulTugas.value.trim();
     const matkulVal = inputMatkul.value;
     const deadlineVal = inputDeadline.value;
 
-    // Validasi: Judul minimal 3 karakter & deadline wajib diisi
+    // Validasi lokal
     let pesanError = '';
-    if (judulVal.length < 3) {
-        pesanError = 'Judul tugas minimal harus 3 karakter!';
-    } else if (!matkulVal) {
-        pesanError = 'Silakan pilih mata kuliah terlebih dahulu!';
-    } else if (!deadlineVal) {
-        pesanError = 'Deadline wajib diisi!';
-    }
+    if (judulVal.length < 3) pesanError = 'Judul tugas minimal harus 3 karakter!';
+    else if (!matkulVal) pesanError = 'Silakan pilih mata kuliah terlebih dahulu!';
+    else if (!deadlineVal) pesanError = 'Deadline wajib diisi!';
 
-    // Jika ada error, tampilkan di elemen error halaman dan hentikan proses
     if (pesanError !== '') {
         errorHandler.textContent = pesanError;
         return;
     }
 
-    // Jika lolos validasi, bersihkan pesan error
-    errorHandler.textContent = '';
+    errorHandler.textContent = ''; // Bersihkan error jika validasi lokal lolos
 
-    // Buat objek tugas baru sesuai struktur state
     const tugasBaru = {
-        id: Date.now(), // ID unik menggunakan timestamp
         judul: judulVal,
         matkul: matkulVal,
         deadline: deadlineVal,
         selesai: false
     };
 
-    // Masukkan ke dalam state array of objects
-    daftarTugas.push(tugasBaru);
+    // 1. Nonaktifkan tombol selama mengirim
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Mengirim...';
 
-    simpanData();
+    try {
+        // 2. Request POST ke /api/tugas dengan header & body JSON
+        const response = await fetch('/api/tugas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(tugasBaru)
+        });
 
-    // Reset form input agar kosong kembali
-    formTugas.reset();
+        // 3. Tangani jika server mengembalikan error (misal 400 Bad Request)
+        if (!response.ok) {
+            // Ambil pesan error dari response body (jika server mengirimkannya)
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.message || `Gagal menambah tugas. Error server: ${response.status}`);
+        }
 
-    // Panggil fungsi render() untuk memperbarui tampilan
-    render();
+        // Jika berhasil: bersihkan form dan muat ulang data dari server
+        formTugas.reset();
+        await fetchTugas(); // Ambil list tugas terbaru
+
+    } catch (error) {
+        // Tampilkan pesan error dari server ke halaman
+        errorHandler.textContent = error.message;
+        errorHandler.style.color = 'red';
+    } finally {
+        // 4. Kembalikan kondisi tombol terlepas dari sukses atau gagal
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Tambah';
+    }
 });
 
 // Fungsi opsional untuk mengubah status selesai (centang/batal)

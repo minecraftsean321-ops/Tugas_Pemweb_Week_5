@@ -16,32 +16,52 @@ const btnAktif = document.getElementById('btnAktif');
 const btnSelesai = document.getElementById('btnSelesai');
 const counterTugas = document.getElementById('counterTugas');
 
-// Fungsi 01: Muat dari server (GET)
+// Tambahkan variabel baru untuk fitur pencarian
+const inputSearch = document.getElementById('inputSearch');
+let keywordPencarian = '';
+let debounceTimer;
+
+// Event Listener untuk Bonus: Pencarian dengan Debounce
+if (inputSearch) {
+    inputSearch.addEventListener('input', function(e) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            keywordPencarian = e.target.value.toLowerCase();
+            render(); // Render ulang setelah user berhenti mengetik 300ms
+        }, 300);
+    });
+}
+
+// Poin 05: Muat data dari server paralel menggunakan Promise.all
 async function fetchTugas() {
-    // Tampilkan state loading (skeleton teks)
     listTugas.innerHTML = '<li style="text-align:center; padding:15px;">Memuat data...</li>';
 
     try {
-        // Melakukan request GET ke /api/tugas
-        const response = await fetch('/api/tugas');
-        
-        if (!response.ok) {
-            throw new Error(`Gagal memuat data (Status: ${response.status})`);
-        }
+        // Menembak 2 API sekaligus (Pastikan endpoint matkul disesuaikan)
+        const [dataTugas, dataMatkul] = await Promise.all([
+            api('/api/tugas'),
+            api('/api/matkul') 
+        ]);
 
-        // Ambil data JSON dari server dan masukkan ke state
-        const data = await response.json();
-        daftarTugas = data;
+        daftarTugas = dataTugas;
+
+        // Render otomatis daftar mata kuliah ke dropdown <select>[cite: 13]
+        if (dataMatkul && Array.isArray(dataMatkul)) {
+            inputMatkul.innerHTML = '<option value="" disabled selected>Pilih Mata Kuliah...</option>';
+            dataMatkul.forEach(mk => {
+                // Asumsi properti nama dari API matkul adalah 'nama' atau 'matkul'
+                const namaMk = mk.nama || mk.matkul; 
+                inputMatkul.innerHTML += `<option value="${namaMk}">${namaMk}</option>`;
+            });
+        }
         
-        // Panggil fungsi render untuk menampilkan data (termasuk penanganan jika array kosong)
         render();
 
     } catch (error) {
-        // Tampilkan state error dan tombol coba lagi
         listTugas.innerHTML = `
-            <li style="text-align:center; color:red; padding:15px; border:1px solid red; list-style:none;">
+            <li style="text-align:center; color:red; padding:15px; list-style:none;">
                 Terjadi kesalahan: ${error.message}<br>
-                <button type="button" onclick="fetchTugas()" style="margin-top:10px; padding:5px 10px;">Coba Lagi</button>
+                <button type="button" onclick="fetchTugas()">Coba Lagi</button>
             </li>
         `;
     }
@@ -76,11 +96,16 @@ function render() {
     const jumlahAktif = daftarTugas.filter(tugas => tugas.selesai === false).length;
     counterTugas.textContent = `${jumlahAktif} tugas aktif`; 
 
-    // 2. Saring data berdasarkan filterAktif
+    // Di dalam fungsi render()
     let dataTerfilter = daftarTugas.filter(tugas => {
-        if (filterAktif === 'aktif') return tugas.selesai === false;
-        if (filterAktif === 'selesai') return tugas.selesai === true;
-        return true; // Kalau 'semua', kembalikan semua data
+        const matchFilter = (filterAktif === 'semua') || 
+                            (filterAktif === 'aktif' && !tugas.selesai) || 
+                            (filterAktif === 'selesai' && tugas.selesai);
+                            
+        // Pencocokan kata kunci pencarian
+        const matchSearch = tugas.judul.toLowerCase().includes(keywordPencarian);
+        
+        return matchFilter && matchSearch;
     });
 
     // Urutkan data berdasarkan deadline terdekat
@@ -146,9 +171,10 @@ listTugas.addEventListener('click', async function(e) {
 const btnSubmit = formTugas.querySelector('button[type="submit"]');
 
 // Fungsi 02: Tambah (POST)
+
 formTugas.addEventListener('submit', async function(e) {
-    e.preventDefault(); 
-    
+
+    e.preventDefault();
     const judulVal = judulTugas.value.trim();
     const matkulVal = inputMatkul.value;
     const deadlineVal = inputDeadline.value;
@@ -162,6 +188,7 @@ formTugas.addEventListener('submit', async function(e) {
     if (pesanError !== '') {
         errorHandler.textContent = pesanError;
         return;
+
     }
 
     errorHandler.textContent = ''; // Bersihkan error jika validasi lokal lolos
@@ -178,22 +205,13 @@ formTugas.addEventListener('submit', async function(e) {
     btnSubmit.textContent = 'Mengirim...';
 
     try {
-        // 2. Request POST ke /api/tugas dengan header & body JSON
-        const response = await fetch('/api/tugas', {
+        // Panggil helper api() langsung, lebih ringkas!
+        await api('/api/tugas', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(tugasBaru)
         });
-
-        // 3. Tangani jika server mengembalikan error (misal 400 Bad Request)
-        if (!response.ok) {
-            // Ambil pesan error dari response body (jika server mengirimkannya)
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.message || `Gagal menambah tugas. Error server: ${response.status}`);
-        }
-
+        
         // Jika berhasil: bersihkan form dan muat ulang data dari server
         formTugas.reset();
         await fetchTugas(); // Ambil list tugas terbaru
@@ -202,52 +220,64 @@ formTugas.addEventListener('submit', async function(e) {
         // Tampilkan pesan error dari server ke halaman
         errorHandler.textContent = error.message;
         errorHandler.style.color = 'red';
+
     } finally {
         // 4. Kembalikan kondisi tombol terlepas dari sukses atau gagal
         btnSubmit.disabled = false;
         btnSubmit.textContent = 'Tambah';
     }
+
 });
 
-// 03. Fungsi Selesai menggunakan PATCH[cite: 12]
+// Bonus: Optimistic Update pada Toggle Selesai[cite: 13]
 async function toggleSelesai(id) {
-    // Cari status tugas saat ini di state lokal
-    const tugasSaatIni = daftarTugas.find(t => t.id == id);
-    if (!tugasSaatIni) return;
+    const index = daftarTugas.findIndex(t => t.id == id);
+    if (index === -1) return;
+
+    // 1. Simpan status lama sebagai backup
+    const statusLama = daftarTugas[index].selesai;
+
+    // 2. Ubah state UI langsung dan render (tanpa nunggu server)[cite: 13]
+    daftarTugas[index].selesai = !statusLama;
+    render(); 
 
     try {
-        // Melakukan request PATCH ke /api/tugas/:id[cite: 12]
-        const updatedTugas = await api(`/api/tugas/${id}`, {
+        // 3. Tembak server di belakang layar
+        await api(`/api/tugas/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ selesai: !tugasSaatIni.selesai })
+            body: JSON.stringify({ selesai: !statusLama })
         });
-
-        // Perbarui state dari respons server, lalu render()[cite: 12]
-        daftarTugas = daftarTugas.map(tugas => tugas.id == id ? updatedTugas : tugas);
-        render();
-
     } catch (error) {
-        alert(`Gagal mengubah status tugas: ${error.message}`);
-        render(); // Render ulang untuk mengembalikan tombol jika gagal
+        // 4. Batal/Revert jika gagal[cite: 13]
+        console.warn("Gagal update ke server, membatalkan UI.");
+        daftarTugas[index].selesai = statusLama;
+        render(); // Render ulang state awal
+        alert(`Gagal mengubah tugas: ${error.message}`);
     }
 }
 
-// 03. Fungsi Hapus menggunakan DELETE[cite: 12]
+// Bonus: Optimistic Update pada Hapus Tugas[cite: 13]
 async function hapusTugas(id) {
+    const index = daftarTugas.findIndex(t => t.id == id);
+    if (index === -1) return;
+
+    // 1. Backup data tugas yang dihapus
+    const tugasDihapus = daftarTugas[index];
+
+    // 2. Hapus langsung dari UI[cite: 13]
+    daftarTugas.splice(index, 1);
+    render();
+
     try {
-        // Melakukan request DELETE ke /api/tugas/:id (204 No Content)[cite: 12]
-        await api(`/api/tugas/${id}`, {
-            method: 'DELETE'
-        });
-
-        // Perbarui state dengan membuang tugas yang dihapus dari array, lalu render()[cite: 12]
-        daftarTugas = daftarTugas.filter(tugas => tugas.id != id);
-        render();
-
+        // 3. Eksekusi server
+        await api(`/api/tugas/${id}`, { method: 'DELETE' });
     } catch (error) {
+        // 4. Batal/Revert jika gagal[cite: 13]
+        console.warn("Gagal menghapus di server, mengembalikan tugas.");
+        daftarTugas.splice(index, 0, tugasDihapus); // Sisipkan kembali tugas
+        render();
         alert(`Gagal menghapus tugas: ${error.message}`);
-        render(); // Render ulang untuk mengembalikan tombol jika gagal
     }
 }
 

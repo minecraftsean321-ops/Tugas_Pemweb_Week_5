@@ -111,11 +111,11 @@ function render() {
         divInfo.appendChild(strongJudul);
         divInfo.appendChild(divDetail);
 
-        // Bikin bungkus kanan (tombol)
+        // Bikin bungkus kanan (tombol) tanpa atribut onclick inline[cite: 12]
         const divAksi = document.createElement('div');
         divAksi.innerHTML = `
-            <button onclick="toggleSelesai(${tugas.id})">${tugas.selesai ? 'Batal' : 'Selesai'}</button>
-            <button onclick="hapusTugas(${tugas.id})" style="color:red;">Hapus</button>
+            <button data-id="${tugas.id}" data-action="toggle">${tugas.selesai ? 'Batal' : 'Selesai'}</button>
+            <button data-id="${tugas.id}" data-action="delete" style="color:red;">Hapus</button>
         `;
 
         li.appendChild(divInfo);
@@ -123,6 +123,24 @@ function render() {
         listTugas.appendChild(li);
     });
 }
+
+// 03. Tangkap event klik pada listTugas (Event Delegation)[cite: 12]
+listTugas.addEventListener('click', async function(e) {
+    // Cek apakah yang diklik adalah tombol
+    if (e.target.tagName === 'BUTTON') {
+        const id = e.target.getAttribute('data-id');
+        const action = e.target.getAttribute('data-action');
+
+        // Nonaktifkan tombol sementara agar tidak diklik dua kali saat loading
+        e.target.disabled = true; 
+
+        if (action === 'toggle') {
+            await toggleSelesai(id);
+        } else if (action === 'delete') {
+            await hapusTugas(id);
+        }
+    }
+});
 
 // Tangkap tombol submit untuk fitur disable
 const btnSubmit = formTugas.querySelector('button[type="submit"]');
@@ -191,25 +209,70 @@ formTugas.addEventListener('submit', async function(e) {
     }
 });
 
-// Fungsi opsional untuk mengubah status selesai (centang/batal)
-function toggleSelesai(id) {
-    daftarTugas = daftarTugas.map(tugas => {
-        if (tugas.id === id) {
-            return { ...tugas, selesai: !tugas.selesai };
+// 03. Fungsi Selesai menggunakan PATCH[cite: 12]
+async function toggleSelesai(id) {
+    // Cari status tugas saat ini di state lokal
+    const tugasSaatIni = daftarTugas.find(t => t.id == id);
+    if (!tugasSaatIni) return;
+
+    try {
+        // Melakukan request PATCH ke /api/tugas/:id[cite: 12]
+        const updatedTugas = await api(`/api/tugas/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selesai: !tugasSaatIni.selesai })
+        });
+
+        // Perbarui state dari respons server, lalu render()[cite: 12]
+        daftarTugas = daftarTugas.map(tugas => tugas.id == id ? updatedTugas : tugas);
+        render();
+
+    } catch (error) {
+        alert(`Gagal mengubah status tugas: ${error.message}`);
+        render(); // Render ulang untuk mengembalikan tombol jika gagal
+    }
+}
+
+// 03. Fungsi Hapus menggunakan DELETE[cite: 12]
+async function hapusTugas(id) {
+    try {
+        // Melakukan request DELETE ke /api/tugas/:id (204 No Content)[cite: 12]
+        await api(`/api/tugas/${id}`, {
+            method: 'DELETE'
+        });
+
+        // Perbarui state dengan membuang tugas yang dihapus dari array, lalu render()[cite: 12]
+        daftarTugas = daftarTugas.filter(tugas => tugas.id != id);
+        render();
+
+    } catch (error) {
+        alert(`Gagal menghapus tugas: ${error.message}`);
+        render(); // Render ulang untuk mengembalikan tombol jika gagal
+    }
+}
+
+// 04. Helper api() untuk mengecek res.ok dan melempar Error
+async function api(url, options = {}) {
+    const res = await fetch(url, options);
+    
+    // Jika respons gagal (misal 400, 404, 500)
+    if (!res.ok) {
+        let errorMessage = `Error Server: ${res.status}`;
+        try {
+            // Mencoba mengambil pesan error spesifik dari JSON server[cite: 12]
+            const errorData = await res.json();
+            errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+            // Abaikan jika server tidak mengirim format JSON
         }
-        return tugas;
-    });
+        throw new Error(errorMessage); // Melempar pesan error[cite: 12]
+    }
 
-    simpanData();
-    render();
+    // Jika method DELETE biasanya mengembalikan status 204 (No Content), jangan parse JSON[cite: 12]
+    if (res.status === 204) {
+        return null;
+    }
+
+    // Mengembalikan data JSON untuk request yang berhasil
+    return res.json();
 }
-
-// Fungsi opsional untuk menghapus tugas dari state
-function hapusTugas(id) {
-    daftarTugas = daftarTugas.filter(tugas => tugas.id !== id);
-    simpanData();
-    render();
-}
-
-// Panggil render sekali di awal saat script dimuat
-render();
